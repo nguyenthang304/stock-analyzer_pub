@@ -1,6 +1,6 @@
 """
 Công cụ Phân tích Kỹ thuật 7 Bước Chuyên nghiệp
-Professional 7-Step Technical Analysis Strategy App - Vietnamese Version
+Hỗ trợ Cổ phiếu Việt Nam (HOSE, HNX)
 """
 
 import streamlit as st
@@ -16,8 +16,69 @@ from typing import Dict, Tuple, List, Optional
 import warnings
 warnings.filterwarnings('ignore')
 
+# Danh sách cổ phiếu Việt Nam phổ biến
+VN_STOCKS = {
+    "HOSE (Sàn HCM)": {
+        "FPT": "FPT Corporation - Công nghệ",
+        "VNM": "Vinamilk - Sữa",
+        "VIC": "Vingroup - Bất động sản",
+        "VHM": "Vinhomes - Bất động sản",
+        "VCB": "Vietcombank - Ngân hàng",
+        "BID": "BIDV - Ngân hàng",
+        "CTG": "VietinBank - Ngân hàng",
+        "TCB": "Techcombank - Ngân hàng",
+        "MBB": "MB Bank - Ngân hàng",
+        "VPB": "VPBank - Ngân hàng",
+        "HPG": "Hòa Phát - Thép",
+        "MSN": "Masan - Tiêu dùng",
+        "MWG": "Thế Giới Di Động - Bán lẻ",
+        "VRE": "Vincom Retail - Bán lẻ",
+        "SAB": "Sabeco - Bia",
+        "GAS": "PV Gas - Dầu khí",
+        "PLX": "Petrolimex - Xăng dầu",
+        "VJC": "Vietjet Air - Hàng không",
+        "SSI": "SSI - Chứng khoán",
+        "VND": "VNDirect - Chứng khoán",
+        "HCM": "HCMC Securities - Chứng khoán",
+        "REE": "REE - Cơ điện lạnh",
+        "PNJ": "PNJ - Vàng bạc",
+        "ACB": "ACB - Ngân hàng",
+        "STB": "Sacombank - Ngân hàng",
+        "EIB": "Eximbank - Ngân hàng",
+        "SHB": "SHB - Ngân hàng",
+        "TPB": "TPBank - Ngân hàng",
+        "HDB": "HDBank - Ngân hàng",
+        "LPB": "LienVietPostBank - Ngân hàng",
+        "NVL": "Novaland - Bất động sản",
+        "PDR": "Phát Đạt - Bất động sản",
+        "DXG": "Đất Xanh - Bất động sản",
+        "KDH": "Khang Điền - Bất động sản",
+        "DIG": "DIC Corp - Bất động sản",
+        "BCM": "Becamex - Bất động sản",
+        "KBC": "Kinh Bắc - KCN",
+        "GVR": "Cao su Việt Nam - Cao su",
+        "BVH": "Bảo Việt - Bảo hiểm",
+        "POW": "PV Power - Điện",
+        "PC1": "PC1 - Xây dựng điện",
+        "GMD": "Gemadept - Cảng biển",
+        "DCM": "Đạm Cà Mau - Phân bón",
+        "DPM": "Đạm Phú Mỹ - Phân bón",
+        "PVD": "PV Drilling - Dầu khí",
+        "PVS": "PV Tech - Dầu khí",
+        "VCI": "Vietcap - Chứng khoán",
+    },
+    "HNX (Sàn Hà Nội)": {
+        "SHS": "SHS - Chứng khoán",
+        "PVS": "PV Tech - Dầu khí", 
+        "CEO": "CEO Group - Bất động sản",
+        "IDC": "IDICO - Xây dựng",
+        "PVC": "PVC - Xây dựng",
+        "THD": "Thaiholdings - Đầu tư",
+    }
+}
+
 st.set_page_config(
-    page_title="Phân tích Kỹ thuật 7 Bước",
+    page_title="Phân tích Kỹ thuật 7 Bước - Cổ phiếu Việt Nam",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -60,10 +121,30 @@ st.markdown("""
     .metric-value { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
     .metric-label { font-family: 'Be Vietnam Pro', sans-serif; font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; }
     .trade-setup { background: linear-gradient(135deg, var(--bg-card) 0%, rgba(108,92,231,0.1) 100%); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--accent-blue); }
+    .stock-info { background: var(--bg-card); border-radius: 12px; padding: 1rem; margin: 0.5rem 0; border: 1px solid var(--accent-blue); }
     [data-testid="stSidebar"] { background: var(--bg-secondary); }
     @media (max-width: 768px) { .signal-card { padding: 1.5rem; } .metric-box { padding: 1rem; } .metric-value { font-size: 1.2rem; } }
 </style>
 """, unsafe_allow_html=True)
+
+
+def get_vn_ticker(ticker: str) -> str:
+    """Chuyển đổi mã cổ phiếu VN sang format Yahoo Finance."""
+    ticker = ticker.upper().strip()
+    # Nếu đã có suffix thì giữ nguyên
+    if '.VN' in ticker or '.HN' in ticker:
+        return ticker
+    # Thêm .VN cho cổ phiếu HOSE (mặc định)
+    return f"{ticker}.VN"
+
+
+def get_stock_info(ticker: str) -> str:
+    """Lấy thông tin cổ phiếu từ danh sách."""
+    clean_ticker = ticker.replace('.VN', '').replace('.HN', '').upper()
+    for exchange, stocks in VN_STOCKS.items():
+        if clean_ticker in stocks:
+            return f"{clean_ticker} - {stocks[clean_ticker]}"
+    return ticker
 
 
 @st.cache_data(ttl=300)
@@ -76,7 +157,6 @@ def fetch_stock_data(ticker: str, period: str = "1y") -> Optional[pd.DataFrame]:
         df = df.reset_index()
         return df
     except Exception as e:
-        st.error(f"Lỗi khi lấy dữ liệu: {e}")
         return None
 
 
@@ -246,7 +326,7 @@ def detect_candlestick_patterns(df: pd.DataFrame) -> Dict:
             "body_ratio": body_ratio, "score": max(min(score, 1), -1)}
 
 
-def calculate_risk_management(entry_price: float, support_level: float, account_size: float, risk_percent: float) -> Dict:
+def calculate_risk_management(entry_price: float, support_level: float, account_size: float, risk_percent: float, is_vnd: bool = True) -> Dict:
     stop_loss = support_level * 0.995
     risk_per_share = entry_price - stop_loss
     if risk_per_share <= 0:
@@ -255,12 +335,18 @@ def calculate_risk_management(entry_price: float, support_level: float, account_
     
     risk_amount = account_size * (risk_percent / 100)
     position_size = int(risk_amount / risk_per_share)
+    # Làm tròn xuống bội số của 100 (lô chẵn) cho cổ phiếu VN
+    if is_vnd:
+        position_size = (position_size // 100) * 100
     take_profit = entry_price + (risk_per_share * 2)
     reward_amount = position_size * (take_profit - entry_price)
     
-    return {"entry_price": entry_price, "stop_loss": round(stop_loss, 2), "take_profit": round(take_profit, 2),
-            "position_size": position_size, "risk_amount": round(risk_amount, 2), "reward_amount": round(reward_amount, 2),
-            "risk_per_share": round(risk_per_share, 2), "risk_reward_ratio": "1:2"}
+    return {"entry_price": entry_price, "stop_loss": round(stop_loss, 0) if is_vnd else round(stop_loss, 2),
+            "take_profit": round(take_profit, 0) if is_vnd else round(take_profit, 2),
+            "position_size": position_size, "risk_amount": round(risk_amount, 0) if is_vnd else round(risk_amount, 2),
+            "reward_amount": round(reward_amount, 0) if is_vnd else round(reward_amount, 2),
+            "risk_per_share": round(risk_per_share, 0) if is_vnd else round(risk_per_share, 2),
+            "risk_reward_ratio": "1:2", "is_vnd": is_vnd}
 
 
 def calculate_overall_signal(trend: Dict, volume: Dict, momentum: Dict, patterns: Dict, candles: Dict) -> Dict:
@@ -278,7 +364,8 @@ def calculate_overall_signal(trend: Dict, volume: Dict, momentum: Dict, patterns
             "score": round(normalized_score * 100, 1), "raw_score": round(total_score, 2)}
 
 
-def create_main_chart(df: pd.DataFrame, sr_data: Dict, ticker: str) -> go.Figure:
+def create_main_chart(df: pd.DataFrame, sr_data: Dict, ticker: str, is_vnd: bool = True) -> go.Figure:
+    currency = "₫" if is_vnd else "$"
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05,
                         row_heights=[0.6, 0.2, 0.2], subplot_titles=(f'{ticker} - Biến động Giá', 'Khối lượng', 'RSI'))
     
@@ -289,9 +376,9 @@ def create_main_chart(df: pd.DataFrame, sr_data: Dict, ticker: str) -> go.Figure
     fig.add_trace(go.Scatter(x=df['Date'], y=df['EMA200'], name='EMA 200', line=dict(color='#fd79a8', width=2)), row=1, col=1)
     
     for level in sr_data['support_levels'][-3:]:
-        fig.add_hline(y=level, line_dash="dash", line_color="rgba(0,255,136,0.5)", annotation_text=f"HT: ${level:.2f}", row=1, col=1)
+        fig.add_hline(y=level, line_dash="dash", line_color="rgba(0,255,136,0.5)", annotation_text=f"HT: {currency}{level:,.0f}" if is_vnd else f"HT: {currency}{level:.2f}", row=1, col=1)
     for level in sr_data['resistance_levels'][-3:]:
-        fig.add_hline(y=level, line_dash="dash", line_color="rgba(255,71,87,0.5)", annotation_text=f"KC: ${level:.2f}", row=1, col=1)
+        fig.add_hline(y=level, line_dash="dash", line_color="rgba(255,71,87,0.5)", annotation_text=f"KC: {currency}{level:,.0f}" if is_vnd else f"KC: {currency}{level:.2f}", row=1, col=1)
     for label, level in list(sr_data['fib_levels'].items())[1:-1]:
         fig.add_hline(y=level, line_dash="dot", line_color="rgba(108,92,231,0.4)", annotation_text=f"Fib {label}", row=1, col=1)
     
@@ -315,26 +402,100 @@ def create_main_chart(df: pd.DataFrame, sr_data: Dict, ticker: str) -> go.Figure
 
 def main():
     st.markdown('<h1 class="main-header">📊 Phân tích Kỹ thuật 7 Bước</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #a0a0b0; margin-top: -1rem;">🇻🇳 Hỗ trợ Cổ phiếu Việt Nam (HOSE, HNX)</p>', unsafe_allow_html=True)
     
     with st.sidebar:
         st.markdown("### 🎯 Cài đặt Phân tích")
-        ticker = st.text_input("Mã cổ phiếu", value="AAPL", help="Nhập mã cổ phiếu").upper()
+        
+        # Chọn thị trường
+        market = st.radio("Chọn thị trường", ["🇻🇳 Việt Nam", "🌍 Quốc tế"], horizontal=True)
+        is_vn_market = market == "🇻🇳 Việt Nam"
+        
+        if is_vn_market:
+            # Dropdown chọn cổ phiếu VN
+            st.markdown("##### Cổ phiếu phổ biến:")
+            all_stocks = {}
+            for exchange, stocks in VN_STOCKS.items():
+                for code, name in stocks.items():
+                    all_stocks[f"{code} - {name}"] = code
+            
+            selected_stock = st.selectbox(
+                "Chọn từ danh sách",
+                options=["-- Nhập mã khác --"] + list(all_stocks.keys()),
+                index=0
+            )
+            
+            if selected_stock == "-- Nhập mã khác --":
+                ticker_input = st.text_input("Nhập mã cổ phiếu", value="FPT", help="VD: FPT, VNM, VIC, VCB...").upper()
+            else:
+                ticker_input = all_stocks[selected_stock]
+            
+            ticker = get_vn_ticker(ticker_input)
+            currency = "₫"
+            default_account = 100000000  # 100 triệu VND
+        else:
+            ticker = st.text_input("Mã cổ phiếu", value="AAPL", help="VD: AAPL, GOOGL, MSFT...").upper()
+            currency = "$"
+            default_account = 10000
+        
         period_options = {"3 Tháng": "3mo", "6 Tháng": "6mo", "1 Năm": "1y", "2 Năm": "2y"}
         period_label = st.selectbox("Khoảng thời gian", options=list(period_options.keys()), index=2)
         period = period_options[period_label]
+        
         st.markdown("---")
         st.markdown("### 💰 Quản lý Rủi ro")
-        account_size = st.number_input("Vốn tài khoản ($)", value=10000, min_value=100, step=1000)
+        
+        if is_vn_market:
+            account_size = st.number_input("Vốn tài khoản (VNĐ)", value=default_account, min_value=1000000, step=10000000, format="%d")
+            st.caption(f"💵 {account_size:,.0f} VNĐ")
+        else:
+            account_size = st.number_input("Vốn tài khoản ($)", value=default_account, min_value=100, step=1000)
+        
         risk_percent = st.slider("Rủi ro tối đa (%)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
+        
         st.markdown("---")
         analyze_btn = st.button("🔍 Chạy Phân tích", type="primary", use_container_width=True)
+        
+        # Hiển thị hướng dẫn
+        with st.expander("📖 Hướng dẫn mã cổ phiếu VN"):
+            st.markdown("""
+            **Sàn HOSE (HCM):** Thêm `.VN`
+            - FPT → `FPT.VN`
+            - VNM → `VNM.VN`
+            
+            **Sàn HNX (Hà Nội):** Thêm `.VN`  
+            - SHS → `SHS.VN`
+            
+            **App tự động thêm `.VN` khi chọn thị trường VN**
+            """)
     
     if analyze_btn or ticker:
-        with st.spinner(f"Đang phân tích {ticker}..."):
+        display_ticker = ticker.replace('.VN', '').replace('.HN', '')
+        with st.spinner(f"Đang phân tích {display_ticker}..."):
             df = fetch_stock_data(ticker, period)
-            if df is None or len(df) < 200:
-                st.error(f"❌ Không thể lấy đủ dữ liệu cho {ticker}. Vui lòng kiểm tra mã cổ phiếu.")
+            
+            if df is None or len(df) < 50:
+                st.error(f"❌ Không thể lấy dữ liệu cho **{display_ticker}**.")
+                st.info(f"""
+                💡 **Gợi ý:**
+                - Kiểm tra mã cổ phiếu có đúng không
+                - Thử các mã phổ biến: FPT, VNM, VIC, VCB, HPG, MBB, TCB
+                - Dữ liệu Yahoo Finance có thể bị delay với một số mã VN
+                """)
+                
+                # Hiển thị danh sách cổ phiếu phổ biến
+                st.markdown("### 📋 Danh sách cổ phiếu VN phổ biến")
+                for exchange, stocks in VN_STOCKS.items():
+                    with st.expander(f"**{exchange}**"):
+                        cols = st.columns(3)
+                        for i, (code, name) in enumerate(list(stocks.items())[:15]):
+                            cols[i % 3].write(f"**{code}** - {name}")
                 return
+            
+            # Kiểm tra đủ dữ liệu cho EMA200
+            min_required = 200
+            if len(df) < min_required:
+                st.warning(f"⚠️ Chỉ có {len(df)} phiên giao dịch. EMA200 có thể không chính xác.")
             
             df = calculate_emas(df)
             trend_data = analyze_trend(df)
@@ -344,20 +505,27 @@ def main():
             pattern_data = detect_price_patterns(df)
             candle_data = detect_candlestick_patterns(df)
             overall = calculate_overall_signal(trend_data, volume_data, momentum_data, pattern_data, candle_data)
-            risk_data = calculate_risk_management(df['Close'].iloc[-1], sr_data['nearest_support'], account_size, risk_percent)
+            risk_data = calculate_risk_management(df['Close'].iloc[-1], sr_data['nearest_support'], account_size, risk_percent, is_vn_market)
+            
+            # Thông tin cổ phiếu
+            stock_info = get_stock_info(ticker)
+            st.markdown(f'<div class="stock-info"><strong>📈 {stock_info}</strong></div>', unsafe_allow_html=True)
             
             signal_class = f"signal-{overall['signal_class']}"
             st.markdown(f"""
             <div class="signal-card {signal_class}">
-                <div style="font-size: 1rem; color: #a0a0b0; text-transform: uppercase; letter-spacing: 2px;">Tín hiệu cho {ticker}</div>
+                <div style="font-size: 1rem; color: #a0a0b0; text-transform: uppercase; letter-spacing: 2px;">Tín hiệu cho {display_ticker}</div>
                 <div class="signal-text">{overall['signal']}</div>
                 <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">Khuyến nghị: <strong>{overall['recommendation']}</strong></div>
                 <div class="score-badge" style="background: rgba(255,255,255,0.1);">Độ tin cậy: {overall['score']}%</div>
             </div>""", unsafe_allow_html=True)
             
+            # Format giá
+            price_fmt = f"{df['Close'].iloc[-1]:,.0f}" if is_vn_market else f"{df['Close'].iloc[-1]:.2f}"
+            
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.markdown(f'<div class="metric-box"><div class="metric-value">${df["Close"].iloc[-1]:.2f}</div><div class="metric-label">Giá hiện tại</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="metric-box"><div class="metric-value">{currency}{price_fmt}</div><div class="metric-label">Giá hiện tại</div></div>', unsafe_allow_html=True)
             with col2:
                 change = ((df['Close'].iloc[-1] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100
                 color = "#00ff88" if change >= 0 else "#ff4757"
@@ -369,7 +537,7 @@ def main():
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 📈 Biểu đồ Giá với Chỉ báo")
-            st.plotly_chart(create_main_chart(df, sr_data, ticker), use_container_width=True)
+            st.plotly_chart(create_main_chart(df, sr_data, display_ticker, is_vn_market), use_container_width=True)
             
             st.markdown("### 📋 Báo cáo Phân tích Chi tiết")
             
@@ -378,22 +546,24 @@ def main():
                 step_class = "step-pass" if trend_data['trend_en'] == "UPTREND" else ("step-fail" if trend_data['trend_en'] == "DOWNTREND" else "step-warn")
                 st.markdown(f'<div class="step-card {step_class}"><strong>{status} Xu hướng: {trend_data["trend"]}</strong></div>', unsafe_allow_html=True)
                 c1, c2, c3 = st.columns(3)
-                c1.metric("EMA 20", f"${trend_data['ema20']:.2f}"); c2.metric("EMA 50", f"${trend_data['ema50']:.2f}"); c3.metric("EMA 200", f"${trend_data['ema200']:.2f}")
+                ema_fmt = lambda x: f"{currency}{x:,.0f}" if is_vn_market else f"{currency}{x:.2f}"
+                c1.metric("EMA 20", ema_fmt(trend_data['ema20'])); c2.metric("EMA 50", ema_fmt(trend_data['ema50'])); c3.metric("EMA 200", ema_fmt(trend_data['ema200']))
                 st.caption(f"Độ dốc EMA20: {trend_data['ema20_slope']:.2f}% | Độ dốc EMA50: {trend_data['ema50_slope']:.2f}%")
             
             with st.expander("**Bước 2: Mức then chốt (Hỗ trợ & Kháng cự)**"):
                 st.markdown('<div class="step-card step-pass"><strong>📍 Đã xác định các mức then chốt</strong></div>', unsafe_allow_html=True)
                 c1, c2 = st.columns(2)
+                price_fmt_fn = lambda x: f"{currency}{x:,.0f}" if is_vn_market else f"{currency}{x:.2f}"
                 with c1:
                     st.markdown("**Mức Hỗ trợ:**")
-                    for level in sr_data['support_levels'][-3:]: st.write(f"• ${level:.2f}")
+                    for level in sr_data['support_levels'][-3:]: st.write(f"• {price_fmt_fn(level)}")
                 with c2:
                     st.markdown("**Mức Kháng cự:**")
-                    for level in sr_data['resistance_levels'][-3:]: st.write(f"• ${level:.2f}")
+                    for level in sr_data['resistance_levels'][-3:]: st.write(f"• {price_fmt_fn(level)}")
                 st.markdown("**Các mức Fibonacci Thoái lui:**")
                 fib_cols = st.columns(4)
                 for i, (label, level) in enumerate(list(sr_data['fib_levels'].items())[1:5]):
-                    fib_cols[i].metric(f"Fib {label}", f"${level:.2f}")
+                    fib_cols[i].metric(f"Fib {label}", price_fmt_fn(level))
             
             with st.expander("**Bước 3: Phân tích Khối lượng**"):
                 status = "✅" if volume_data['strong_volume'] and volume_data['obv_bullish'] else ("❌" if volume_data['strong_volume'] and not volume_data['obv_bullish'] else "⚠️")
@@ -433,19 +603,34 @@ def main():
                 else:
                     st.markdown('<div class="trade-setup"><h4 style="color: #6c5ce7; margin-bottom: 1rem;">💼 Máy tính Thiết lập Giao dịch</h4></div>', unsafe_allow_html=True)
                     c1, c2, c3 = st.columns(3)
-                    c1.metric("📥 Giá vào lệnh", f"${risk_data['entry_price']:.2f}")
-                    c2.metric("🛑 Dừng lỗ (SL)", f"${risk_data['stop_loss']:.2f}", f"-${risk_data['risk_per_share']:.2f}/cp")
-                    c3.metric("🎯 Chốt lời (TP)", f"${risk_data['take_profit']:.2f}", f"R:R {risk_data['risk_reward_ratio']}")
+                    
+                    if is_vn_market:
+                        c1.metric("📥 Giá vào lệnh", f"{currency}{risk_data['entry_price']:,.0f}")
+                        c2.metric("🛑 Dừng lỗ (SL)", f"{currency}{risk_data['stop_loss']:,.0f}", f"-{currency}{risk_data['risk_per_share']:,.0f}/cp")
+                        c3.metric("🎯 Chốt lời (TP)", f"{currency}{risk_data['take_profit']:,.0f}", f"R:R {risk_data['risk_reward_ratio']}")
+                    else:
+                        c1.metric("📥 Giá vào lệnh", f"{currency}{risk_data['entry_price']:.2f}")
+                        c2.metric("🛑 Dừng lỗ (SL)", f"{currency}{risk_data['stop_loss']:.2f}", f"-{currency}{risk_data['risk_per_share']:.2f}/cp")
+                        c3.metric("🎯 Chốt lời (TP)", f"{currency}{risk_data['take_profit']:.2f}", f"R:R {risk_data['risk_reward_ratio']}")
+                    
                     st.markdown("---")
                     c1, c2, c3 = st.columns(3)
-                    c1.metric("📊 Khối lượng", f"{risk_data['position_size']} cổ phiếu")
-                    c2.metric("💵 Rủi ro", f"${risk_data['risk_amount']:.2f}")
-                    c3.metric("💰 Lợi nhuận tiềm năng", f"${risk_data['reward_amount']:.2f}")
-                    total_investment = risk_data['position_size'] * risk_data['entry_price']
-                    st.info(f"💡 Tổng vốn đầu tư cần thiết: **${total_investment:,.2f}** ({(total_investment/account_size)*100:.1f}% tài khoản)")
+                    c1.metric("📊 Khối lượng", f"{risk_data['position_size']:,} cổ phiếu")
+                    
+                    if is_vn_market:
+                        c2.metric("💵 Rủi ro", f"{currency}{risk_data['risk_amount']:,.0f}")
+                        c3.metric("💰 Lợi nhuận tiềm năng", f"{currency}{risk_data['reward_amount']:,.0f}")
+                        total_investment = risk_data['position_size'] * risk_data['entry_price']
+                        st.info(f"💡 Tổng vốn đầu tư cần thiết: **{currency}{total_investment:,.0f}** ({(total_investment/account_size)*100:.1f}% tài khoản)")
+                        st.caption("📌 Khối lượng đã làm tròn theo lô chẵn (bội số 100)")
+                    else:
+                        c2.metric("💵 Rủi ro", f"{currency}{risk_data['risk_amount']:.2f}")
+                        c3.metric("💰 Lợi nhuận tiềm năng", f"{currency}{risk_data['reward_amount']:.2f}")
+                        total_investment = risk_data['position_size'] * risk_data['entry_price']
+                        st.info(f"💡 Tổng vốn đầu tư cần thiết: **{currency}{total_investment:,.2f}** ({(total_investment/account_size)*100:.1f}% tài khoản)")
             
             st.markdown("---")
-            st.caption("⚠️ **Tuyên bố miễn trừ trách nhiệm:** Công cụ này chỉ dành cho mục đích giáo dục và thông tin. Đây không phải là tư vấn tài chính. Luôn tự nghiên cứu và tham khảo ý kiến của cố vấn tài chính có chuyên môn trước khi đưa ra quyết định đầu tư.")
+            st.caption("⚠️ **Tuyên bố miễn trừ trách nhiệm:** Công cụ này chỉ dành cho mục đích giáo dục và thông tin. Đây không phải là tư vấn tài chính. Luôn tự nghiên cứu và tham khảo ý kiến của cố vấn tài chính có chuyên môn trước khi đưa ra quyết định đầu tư. Dữ liệu được cung cấp bởi Yahoo Finance và có thể bị delay.")
 
 
 if __name__ == "__main__":
