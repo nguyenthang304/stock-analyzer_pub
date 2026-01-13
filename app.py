@@ -705,8 +705,28 @@ def analyze_technical(df: pd.DataFrame) -> Optional[Dict]:
 # ======================= AI ANALYSIS =======================
 
 def get_ai_analysis(code: str, name: str, sector: str, fund_data: Dict, fund_score: Dict, 
-                    intrinsic: Dict, tech_data: Dict) -> str:
+                    intrinsic: Dict, tech_data: Optional[Dict]) -> str:
     """Get AI analysis using Claude API."""
+    
+    # Prepare technical data with defaults
+    if tech_data:
+        tech_trend = tech_data['trend']
+        tech_rsi = f"{tech_data['rsi']:.1f}"
+        tech_vol = f"{tech_data['vol_ratio']:.2f}"
+        tech_5d = f"{tech_data['price_5d']:.1f}"
+        tech_20d = f"{tech_data['price_20d']:.1f}"
+        tech_pos = f"{tech_data['price_pos']:.0f}"
+        tech_signal = tech_data['signal']
+        tech_score = f"{tech_data['tech_score']:.0f}"
+    else:
+        tech_trend = "N/A"
+        tech_rsi = "N/A"
+        tech_vol = "N/A"
+        tech_5d = "0"
+        tech_20d = "0"
+        tech_pos = "50"
+        tech_signal = "N/A"
+        tech_score = "50"
     
     # Prepare data summary
     data_summary = f"""
@@ -735,15 +755,15 @@ def get_ai_analysis(code: str, name: str, sector: str, fund_data: Dict, fund_sco
 - Tiềm năng tăng giá: {intrinsic['upside']:+.1f}%
 
 ### Phân tích Kỹ thuật:
-- Xu hướng: {tech_data['trend'] if tech_data else 'N/A'}
-- RSI(14): {tech_data['rsi']:.1f if tech_data else 'N/A'}
-- Khối lượng/TB: {tech_data['vol_ratio']:.2f if tech_data else 'N/A'}x
-- Thay đổi 5 ngày: {tech_data['price_5d']:.1f if tech_data else 0}%
-- Thay đổi 20 ngày: {tech_data['price_20d']:.1f if tech_data else 0}%
-- Vị trí giá (so với 52 tuần): {tech_data['price_pos']:.0f if tech_data else 50}%
+- Xu hướng: {tech_trend}
+- RSI(14): {tech_rsi}
+- Khối lượng/TB: {tech_vol}x
+- Thay đổi 5 ngày: {tech_5d}%
+- Thay đổi 20 ngày: {tech_20d}%
+- Vị trí giá (so với 52 tuần): {tech_pos}%
 
-**Tín hiệu Kỹ thuật: {tech_data['signal'] if tech_data else 'N/A'}**
-**Điểm Kỹ thuật: {tech_data['tech_score']:.0f if tech_data else 50}/100**
+**Tín hiệu Kỹ thuật: {tech_signal}**
+**Điểm Kỹ thuật: {tech_score}/100**
 """
 
     prompt = f"""Bạn là chuyên gia phân tích đầu tư chứng khoán Việt Nam với hơn 20 năm kinh nghiệm. 
